@@ -14,7 +14,7 @@ RUN apt-get -yqq update \
          libcap-ng-dev libcap-ng-utils libselinux1-dev \
          libcurl4-nss-dev flex bison gcc make \
          libunbound-dev libnss3-tools libevent-dev xl2tpd xmlto \
-         jq unzip syslog-ng \
+         jq unzip syslog-ng libfreeradius-client2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -27,12 +27,13 @@ RUN wget -t 3 -T 30 -nv -O "libreswan-${SWAN_VER}.tar.gz" "https://download.libr
     && make -s programs \
     && make -s install \
     && rm -rf "/opt/src/libreswan-${SWAN_VER}"
-RUN wget https://github.com/FreeRADIUS/freeradius-client/archive/master.zip && \
-    unzip master.zip && \
-    rm -f master.zip && \
-    cd freeradius-client-master && \
-    ./configure --prefix=/ && \
-    make && make install
+
+#RUN wget https://github.com/FreeRADIUS/freeradius-client/archive/master.zip && \
+#    unzip master.zip && \
+#    rm -f master.zip && \
+#    cd freeradius-client-master && \
+#    ./configure --prefix=/ && \
+#    make && make install
 
 ADD ./mo /usr/bin/mo
 ADD ./radiusclient.conf /templates/
