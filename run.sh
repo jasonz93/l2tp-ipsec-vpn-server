@@ -164,8 +164,8 @@ modem
 debug
 lcp-echo-failure 4
 lcp-echo-interval 30
-plugin /usr/lib/pppd/2.4.6/radius.so
-plugin /usr/lib/pppd/2.4.6/radattr.so
+plugin radius.so
+plugin radattr.so
 radius-config-file /etc/radiusclient/radiusclient.conf
 EOF
 
