@@ -20,13 +20,12 @@ if [ ! -f /.dockerenv ]; then
   exit 1
 fi
 
-if [ -z "$VPN_IPSEC_PSK" ] && [ -z "$VPN_USER_CREDENTIAL_LIST" ]; then
+if [ -z "$VPN_IPSEC_PSK" ]; then
   VPN_IPSEC_PSK="$(< /dev/urandom tr -dc 'A-HJ-NPR-Za-km-z2-9' | head -c 16)"
   VPN_PASSWORD="$(< /dev/urandom tr -dc 'A-HJ-NPR-Za-km-z2-9' | head -c 16)"
-  VPN_USER_CREDENTIAL_LIST="[{\"login\":\"vpnuser\",\"password\":\"$VPN_PASSWORD\"}]"
 fi
 
-if [ -z "$VPN_IPSEC_PSK" ] || [ -z "$VPN_USER_CREDENTIAL_LIST" ]; then
+if [ -z "$VPN_IPSEC_PSK" ]; then
   echo "VPN credentials must be specified. Edit your 'env' file and re-enter them."
   exit 1
 fi
@@ -156,19 +155,106 @@ crtscts
 lock
 lcp-echo-failure 4
 lcp-echo-interval 30
+plugin /usr/lib/pppd/2.4.6/radius.so
+plugin /usr/lib/pppd/2.4.6/radattr.so
 EOF
 
-# Create VPN credentials
-echo "$VPN_USER_CREDENTIAL_LIST" | jq -r '.[] | .login + " l2tpd " + .password + " *"' > /etc/ppp/chap-secrets
+# Create dictionary for microsoft client
+cat >> /etc/radiusclient/dictionary.microsoft <<EOF
+#
+#       Microsoft's VSA's, from RFC 2548
+#
+#       \$Id: poptop_ads_howto_8.htm,v 1.8 2008/10/02 08:11:48 wskwok Exp \$
+#
+VENDOR          Microsoft       311     Microsoft
+BEGIN VENDOR    Microsoft
+ATTRIBUTE       MS-CHAP-Response        1       string  Microsoft
+ATTRIBUTE       MS-CHAP-Error           2       string  Microsoft
+ATTRIBUTE       MS-CHAP-CPW-1           3       string  Microsoft
+ATTRIBUTE       MS-CHAP-CPW-2           4       string  Microsoft
+ATTRIBUTE       MS-CHAP-LM-Enc-PW       5       string  Microsoft
+ATTRIBUTE       MS-CHAP-NT-Enc-PW       6       string  Microsoft
+ATTRIBUTE       MS-MPPE-Encryption-Policy 7     string  Microsoft
+# This is referred to as both singular and plural in the RFC.
+# Plural seems to make more sense.
+ATTRIBUTE       MS-MPPE-Encryption-Type 8       string  Microsoft
+ATTRIBUTE       MS-MPPE-Encryption-Types  8     string  Microsoft
+ATTRIBUTE       MS-RAS-Vendor           9       integer Microsoft
+ATTRIBUTE       MS-CHAP-Domain          10      string  Microsoft
+ATTRIBUTE       MS-CHAP-Challenge       11      string  Microsoft
+ATTRIBUTE       MS-CHAP-MPPE-Keys       12      string  Microsoft encrypt=1
+ATTRIBUTE       MS-BAP-Usage            13      integer Microsoft
+ATTRIBUTE       MS-Link-Utilization-Threshold 14 integer        Microsoft
+ATTRIBUTE       MS-Link-Drop-Time-Limit 15      integer Microsoft
+ATTRIBUTE       MS-MPPE-Send-Key        16      string  Microsoft
+ATTRIBUTE       MS-MPPE-Recv-Key        17      string  Microsoft
+ATTRIBUTE       MS-RAS-Version          18      string  Microsoft
+ATTRIBUTE       MS-Old-ARAP-Password    19      string  Microsoft
+ATTRIBUTE       MS-New-ARAP-Password    20      string  Microsoft
+ATTRIBUTE       MS-ARAP-PW-Change-Reason 21     integer Microsoft
+ATTRIBUTE       MS-Filter               22      string  Microsoft
+ATTRIBUTE       MS-Acct-Auth-Type       23      integer Microsoft
+ATTRIBUTE       MS-Acct-EAP-Type        24      integer Microsoft
+ATTRIBUTE       MS-CHAP2-Response       25      string  Microsoft
+ATTRIBUTE       MS-CHAP2-Success        26      string  Microsoft
+ATTRIBUTE       MS-CHAP2-CPW            27      string  Microsoft
+ATTRIBUTE       MS-Primary-DNS-Server   28      ipaddr
+ATTRIBUTE       MS-Secondary-DNS-Server 29      ipaddr
+ATTRIBUTE       MS-Primary-NBNS-Server  30      ipaddr Microsoft
+ATTRIBUTE       MS-Secondary-NBNS-Server 31     ipaddr Microsoft
+#ATTRIBUTE      MS-ARAP-Challenge       33      string  Microsoft
+#
+#       Integer Translations
+#
+#       MS-BAP-Usage Values
+VALUE           MS-BAP-Usage            Not-Allowed     0
+VALUE           MS-BAP-Usage            Allowed         1
+VALUE           MS-BAP-Usage            Required        2
+#       MS-ARAP-Password-Change-Reason Values
+VALUE   MS-ARAP-PW-Change-Reason        Just-Change-Password            1
+VALUE   MS-ARAP-PW-Change-Reason        Expired-Password                2
+VALUE   MS-ARAP-PW-Change-Reason        Admin-Requires-Password-Change  3
+VALUE   MS-ARAP-PW-Change-Reason        Password-Too-Short              4
+#       MS-Acct-Auth-Type Values
+VALUE           MS-Acct-Auth-Type       PAP             1
+VALUE           MS-Acct-Auth-Type       CHAP            2
+VALUE           MS-Acct-Auth-Type       MS-CHAP-1       3
+VALUE           MS-Acct-Auth-Type       MS-CHAP-2       4
+VALUE           MS-Acct-Auth-Type       EAP             5
+#       MS-Acct-EAP-Type Values
+VALUE           MS-Acct-EAP-Type        MD5             4
+VALUE           MS-Acct-EAP-Type        OTP             5
+VALUE           MS-Acct-EAP-Type        Generic-Token-Card      6
+VALUE           MS-Acct-EAP-Type        TLS             13
+END-VENDOR Microsoft
+EOF
 
-CREDENTIALS_NUMBER=`echo "$VPN_USER_CREDENTIAL_LIST" | jq 'length'`
-for (( i=0; i<=$CREDENTIALS_NUMBER - 1; i++ ))
-do
-	VPN_USER_LOGIN=`echo "$VPN_USER_CREDENTIAL_LIST" | jq ".["$i"] | .login"`
-	VPN_USER_PASSWORD=`echo "$VPN_USER_CREDENTIAL_LIST" | jq ".["$i"] | .password"`
-	VPN_PASSWORD_ENC=$(openssl passwd -1 "$VPN_USER_PASSWORD")
-	echo "${VPN_USER_LOGIN}:${VPN_PASSWORD_ENC}:xauth-psk" >> /etc/ipsec.d/passwd
-done
+cat >> /etc/radiusclient/dictionary.merit << EOF
+#
+#       Experimental extensions, configuration only (for check-items)
+#       Names/numbers as per the MERIT extensions (if possible).
+#
+ATTRIBUTE       NAS-Identifier          32      string
+ATTRIBUTE       Proxy-State             33      string
+ATTRIBUTE       Login-LAT-Service       34      string
+ATTRIBUTE       Login-LAT-Node          35      string
+ATTRIBUTE       Login-LAT-Group         36      string
+ATTRIBUTE       Framed-AppleTalk-Link   37      integer
+ATTRIBUTE       Framed-AppleTalk-Network 38     integer
+ATTRIBUTE       Framed-AppleTalk-Zone   39      string
+ATTRIBUTE       Acct-Input-Packets      47      integer
+ATTRIBUTE       Acct-Output-Packets     48      integer
+# 8 is a MERIT extension.
+VALUE           Service-Type            Authenticate-Only       8
+EOF
+
+#cat >> /etc/radiusclient/dictionary << EOF
+#INCLUDE /etc/radiusclient/dictionary.merit
+#INCLUDE /etc/radiusclient/dictionary.microsoft
+#EOF
+
+/usr/bin/mo /templates/radiusclient.conf > /etc/radiusclient/radiusclient.conf
+/usr/bin/mo /templates/servers > /etc/radiusclient/servers
 
 # Update sysctl settings
 if ! grep -qs "Added by run.sh script" /etc/sysctl.conf; then
