@@ -162,8 +162,9 @@ lcp-echo-failure 4
 lcp-echo-interval 30
 plugin radius.so
 plugin radattr.so
-radius-config-file /etc/radiusclient/radiusclient.conf
 EOF
+
+echo "" > /etc/radiusclient/port-id-map
 
 # Create dictionary for microsoft client
 cat >> /etc/radiusclient/dictionary.microsoft <<EOF
