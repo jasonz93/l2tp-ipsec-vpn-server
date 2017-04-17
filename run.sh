@@ -101,7 +101,6 @@ conn l2tp-psk
   leftprotoport=17/1701
   rightprotoport=17/%any
   type=transport
-  auth=esp
   also=shared
 
 conn xauth-psk
@@ -135,7 +134,7 @@ port = 1701
 [lns default]
 ip range = 192.168.42.10-192.168.42.50
 local ip = 192.168.42.1
-refuse chap = yes
+refuse chap = no
 refuse pap = yes
 require authentication = yes
 name = l2tpd
@@ -151,9 +150,6 @@ ipcp-accept-remote
 ms-dns 8.8.8.8
 ms-dns 8.8.4.4
 refuse-pap
-refuse-chap
-refuse-mschap
-require-mschap-v2
 asyncmap 0
 noccp
 auth
