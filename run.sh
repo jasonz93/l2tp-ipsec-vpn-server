@@ -78,6 +78,7 @@ config setup
   nhelpers=0
   interfaces=%defaultroute
   uniqueids=no
+  ip saref=no
 
 conn shared
   left=$PRIVATE_IP
