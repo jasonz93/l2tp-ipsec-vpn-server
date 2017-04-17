@@ -135,10 +135,11 @@ port = 1701
 [lns default]
 ip range = 192.168.42.10-192.168.42.50
 local ip = 192.168.42.1
-require chap = yes
+refuse chap = yes
 refuse pap = yes
 require authentication = yes
 name = l2tpd
+ppp debug = yes
 pppoptfile = /etc/ppp/options.xl2tpd
 length bit = yes
 EOF
