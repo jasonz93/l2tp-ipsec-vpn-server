@@ -78,7 +78,6 @@ config setup
   nhelpers=0
   interfaces=%defaultroute
   uniqueids=no
-  ip saref=no
 
 conn shared
   left=$PRIVATE_IP
@@ -132,6 +131,7 @@ EOF
 cat > /etc/xl2tpd/xl2tpd.conf <<EOF
 [global]
 port = 1701
+ip saref = no
 
 [lns default]
 ip range = 192.168.42.10-192.168.42.50
