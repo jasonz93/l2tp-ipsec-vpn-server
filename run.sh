@@ -131,7 +131,7 @@ EOF
 cat > /etc/xl2tpd/xl2tpd.conf <<EOF
 [global]
 port = 1701
-ip saref = no
+ipsec saref = no
 
 [lns default]
 ip range = 192.168.42.10-192.168.42.50
