@@ -149,10 +149,18 @@ ipcp-accept-local
 ipcp-accept-remote
 ms-dns 8.8.8.8
 ms-dns 8.8.4.4
+refuse-pap
+refuse-chap
+refuse-mschap
+require-mschap-v2
+asyncmap 0
 noccp
 auth
 crtscts
 lock
+hide-password
+modem
+debug
 lcp-echo-failure 4
 lcp-echo-interval 30
 plugin /usr/lib/pppd/2.4.6/radius.so
